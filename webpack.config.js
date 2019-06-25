@@ -1,6 +1,5 @@
 const path = require('path');
 const webpack = require('webpack');
-const ExecutionBundlePlugin = require('./execution-bundle-plugin');
 
 module.exports = {
   entry: './src/index.js',
@@ -15,7 +14,7 @@ module.exports = {
         use: {
           loader: 'remote-loader',
           options: {
-            serverUrl: 'http://localhost/sababa'
+            serverUrl: 'http://localhost:3000'
           }
         }
       },

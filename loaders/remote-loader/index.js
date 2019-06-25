@@ -69,13 +69,14 @@ module.exports = async function remoteLoader(content) {
   console.log(this.resourcePath);
   const callback = this.async();
   this.cacheable && this.cacheable();
-  this.value = content;
-  const { bundle } = await runWebpack(this.resourcePath);
 
   const { serverUrl } = this.query;
   const deployUrl = `${serverUrl}/register`;
   const runUrl = `${serverUrl}/run`;
-  const deployedIdentifier = await deployToServer(bundle, deployUrl);
+
+
+  const { bundle } = await runWebpack(this.resourcePath);
+  const { guid: deployedIdentifier } = await deployToServer(bundle, deployUrl);
 
   callback(null, `module.exports = function remoteFunction(...args) {
     return fetch(${JSON.stringify(runUrl)}, {
