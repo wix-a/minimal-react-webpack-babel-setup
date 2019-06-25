@@ -71,8 +71,10 @@ module.exports = async function remoteLoader(content) {
   this.cacheable && this.cacheable();
   this.value = content;
   const { bundle } = await runWebpack(this.resourcePath);
-  const deployUrl = 'http://localhsot:3000/';
-  const runUrl = 'http://localhsot:3000/';
+
+  const { serverUrl } = this.query;
+  const deployUrl = `${serverUrl}/register`;
+  const runUrl = `${serverUrl}/run`;
   const deployedIdentifier = await deployToServer(bundle, deployUrl);
 
   callback(null, `module.exports = function remoteFunction(...args) {

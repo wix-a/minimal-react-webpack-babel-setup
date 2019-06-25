@@ -12,7 +12,12 @@ module.exports = {
       {
         test: /\.remote\.(t|j)s$/,
         exclude: /node_modules/,
-        use: ['remote-loader']
+        use: {
+          loader: 'remote-loader',
+          options: {
+            serverUrl: 'http://localhost/sababa'
+          }
+        }
       },
       {
         test: /\.(js|jsx)$/,
