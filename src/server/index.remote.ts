@@ -21,7 +21,8 @@ async function getServiceDTO(aspects, id) {
   });
 }
 
-async function getOffering(aspects, id) {
+async function getOffering(id, context?) {
+  const aspects = context.req.aspects;
   console.log(`getOffering('${aspects}', '${id}')`);
   const serviceResponse = await getServiceDTO(aspects, id);
   if (serviceResponse.status === ServiceStatus.DELETED) {
