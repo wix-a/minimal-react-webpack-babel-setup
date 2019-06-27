@@ -21,7 +21,6 @@ async function runWebpack(entry) {
                       node: 'current'
                     }
                   }]],
-                  //plugins: ['@babel/plugin-proposal-object-rest-spread']
                 }
               }
             }
@@ -37,10 +36,14 @@ async function runWebpack(entry) {
           libraryTarget: 'umd',
           library: 'remoteBundle',
         },
-        plugins: [
-          //new ExecutionBundlePlugin(),
-          //new webpack.HotModuleReplacementPlugin()
-        ]
+        externals: {
+          '@wix/ambassador/runtime/rpc':{
+            commonjs: '@wix/ambassador/runtime/rpc',
+            commonjs2: '@wix/ambassador/runtime/rpc',
+            amd: '@wix/ambassador/runtime/rpc',
+            root: 'ambassador' // indicates global variable
+          }
+        }
       };
       
       return new Promise((resolve, reject) => {
@@ -61,31 +64,37 @@ async function runWebpack(entry) {
 async function deployToServer(bundle, deployUrl) {
   const formData = { bundle: fs.createReadStream(bundle) };
   const result = await request.post({url: deployUrl, formData });
-  console.log('result body', result.body);
-  return result.body;
+
+  return JSON.parse(result);
 }
 
 module.exports = async function remoteLoader(content) {
-  console.log(this.resourcePath);
+  const start = Date.now();
   const callback = this.async();
   this.cacheable && this.cacheable();
 
   const { serverUrl } = this.query;
   const deployUrl = `${serverUrl}/register`;
-  const runUrl = `${serverUrl}/run`;
-
 
   const { bundle } = await runWebpack(this.resourcePath);
-  const { guid: deployedIdentifier } = await deployToServer(bundle, deployUrl);
+  const { runUrl } = await deployToServer(bundle, deployUrl);
 
+  const elapsedTime = Math.round((Date.now() - start)/1000);
+  console.log(`INFO: ${this.resourcePath} deployed as ${runUrl}, took ${elapsedTime}s`);
+  
   callback(null, `module.exports = function remoteFunction(...args) {
     return fetch(${JSON.stringify(runUrl)}, {
       method: 'POST',
+      mode: 'cors',
+      headers: {
+        'content-type': 'application/json',
+        'x-wix-scheduler-instance': 'c7gpr_kVvUzSa3lIZs9ftugATlzfveY9xZQhNbLu9qc.eyJpbnN0YW5jZUlkIjoiZTk3YjRmOWEtNDI2NC00NDQxLThiNjItMTM1NjdkNDJlODliIiwiYXBwRGVmSWQiOiIxM2QyMWM2My1iNWVjLTU5MTItODM5Ny1jM2E1ZGRiMjdhOTciLCJtZXRhU2l0ZUlkIjoiMjkyMmU4ZjktZTkwZi00MDQ5LWJiMGEtY2U0N2M1YjEyMWJjIiwic2lnbkRhdGUiOiIyMDE5LTA2LTI0VDA4OjAyOjI3LjQ0MFoiLCJ1aWQiOm51bGwsImlwQW5kUG9ydCI6IjkxLjE5OS4xMTkuMjU0LzQ0MjEyIiwidmVuZG9yUHJvZHVjdElkIjpudWxsLCJkZW1vTW9kZSI6ZmFsc2UsIm9yaWdpbkluc3RhbmNlSWQiOiIyODJkNWUyMC03NzdmLTRjN2UtYTk5MC1hMjc4NzgxZjZhNzAiLCJhaWQiOiJkMDM1ZThiNS1jMmFkLTQ5ODgtODFkMy1mNjI1ZGM5ZTIyYzQiLCJiaVRva2VuIjoiYzA1OWE3NjMtYWI2Yi0wNDA4LTMwNjgtZGQxMWI4ZjNjOTI3Iiwic2l0ZU93bmVySWQiOiIwM2RkMDE4NS01YzJhLTQwMjctYWYzNS00ZjdkNDMzYWJjZjgifQ',
+        'authorization': 'c7gpr_kVvUzSa3lIZs9ftugATlzfveY9xZQhNbLu9qc.eyJpbnN0YW5jZUlkIjoiZTk3YjRmOWEtNDI2NC00NDQxLThiNjItMTM1NjdkNDJlODliIiwiYXBwRGVmSWQiOiIxM2QyMWM2My1iNWVjLTU5MTItODM5Ny1jM2E1ZGRiMjdhOTciLCJtZXRhU2l0ZUlkIjoiMjkyMmU4ZjktZTkwZi00MDQ5LWJiMGEtY2U0N2M1YjEyMWJjIiwic2lnbkRhdGUiOiIyMDE5LTA2LTI0VDA4OjAyOjI3LjQ0MFoiLCJ1aWQiOm51bGwsImlwQW5kUG9ydCI6IjkxLjE5OS4xMTkuMjU0LzQ0MjEyIiwidmVuZG9yUHJvZHVjdElkIjpudWxsLCJkZW1vTW9kZSI6ZmFsc2UsIm9yaWdpbkluc3RhbmNlSWQiOiIyODJkNWUyMC03NzdmLTRjN2UtYTk5MC1hMjc4NzgxZjZhNzAiLCJhaWQiOiJkMDM1ZThiNS1jMmFkLTQ5ODgtODFkMy1mNjI1ZGM5ZTIyYzQiLCJiaVRva2VuIjoiYzA1OWE3NjMtYWI2Yi0wNDA4LTMwNjgtZGQxMWI4ZjNjOTI3Iiwic2l0ZU93bmVySWQiOiIwM2RkMDE4NS01YzJhLTQwMjctYWYzNS00ZjdkNDMzYWJjZjgifQ',
+      },
       body: JSON.stringify({
-        function: ${JSON.stringify(deployedIdentifier)},
-        args: JSON.stringify(args);
-      });
-    });
+        args
+      })
+    }).then(res => res.json());
   }`);
 }
 module.exports.seperable = true;

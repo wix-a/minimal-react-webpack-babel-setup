@@ -10,8 +10,8 @@ class App extends React.Component {
   }
 
   async componentDidMount() {
-    const res = await getOferring();
-    this.setState({data: res });
+    const res = await getOferring('9bb03807-8aa2-460a-897d-5baf2c3a489a');
+    this.setState({ data: res });
   }
 
   render() {
@@ -19,7 +19,7 @@ class App extends React.Component {
       return <div>Loading...</div>
     }
 
-    return <div>{this.props.title} {this.state.data}</div>;
+    return <div>{this.props.title} {JSON.stringify(this.state.data)}</div>;
   }
 }
 
